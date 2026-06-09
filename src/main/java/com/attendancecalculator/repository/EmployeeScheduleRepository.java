@@ -26,7 +26,9 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
             JOIN FETCH es.employee e
             WHERE e.empId IN :empIds
             """)
-    List<EmployeeSchedule> findAllByEmployeeEmpIdIn(@Param("empIds") Collection<String> empIds);
+    List<EmployeeSchedule> findAllByEmployeeEmpIdIn(
+            @Param("empIds") Collection<String> empIds
+    );
 
     @Query("""
             SELECT es
@@ -78,4 +80,27 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
 
     @Query("SELECT DISTINCT es.scheduleDate FROM EmployeeSchedule es ORDER BY es.scheduleDate")
     List<LocalDate> findDistinctScheduleDates();
+
+    /**
+     * Fetches every schedule row in [fromDate, toDate] (inclusive) for all employees,
+     * with their employee data loaded in the same query (FETCH JOIN avoids N+1).
+     *
+     * Used by AttendanceSummaryService to build monthly summaries.
+     * Optional empId filter: pass null to get all employees.
+
+     */
+    @Query("""
+            SELECT es
+            FROM EmployeeSchedule es
+            JOIN FETCH es.employee e
+            WHERE es.scheduleDate >= :fromDate
+              AND es.scheduleDate <= :toDate
+              AND (:empId IS NULL OR e.empId = :empId)
+            ORDER BY e.empId, es.scheduleDate
+            """)
+    List<EmployeeSchedule> findAllByDateRangeAndEmployee(
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate")   LocalDate toDate,
+            @Param("empId")    String empId
+    );
 }
