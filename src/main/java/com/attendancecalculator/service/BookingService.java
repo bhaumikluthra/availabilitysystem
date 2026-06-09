@@ -2,6 +2,7 @@ package com.attendancecalculator.service;
 
 import com.attendancecalculator.dto.BookingRequest;
 import com.attendancecalculator.dto.BookingResponse;
+import com.attendancecalculator.dto.UpdateBookingNotesRequest;
 import com.attendancecalculator.entity.Booking;
 import com.attendancecalculator.entity.Employee;
 import com.attendancecalculator.entity.EmployeeSchedule;
@@ -125,4 +126,24 @@ public class BookingService {
                 .notes(b.getNotes())
                 .build();
     }
-}
+    @Transactional
+    public void deleteBooking(Long id) {
+        if (!bookingRepository.existsById(id)) {
+            throw new IllegalArgumentException("Booking not found with ID: " + id);
+        }
+        bookingRepository.deleteById(id);
+    }
+
+    @Transactional
+    public BookingResponse updateBooking(Long id, UpdateBookingNotesRequest request) {
+        // 1. Find the existing booking
+        Booking existingBooking = bookingRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found with ID: " + id));
+
+        // 2. Only update the notes
+        existingBooking.setNotes(request.getNotes());
+
+        // 3. Save and return
+        Booking saved = bookingRepository.save(existingBooking);
+        return toResponse(saved);
+    }}

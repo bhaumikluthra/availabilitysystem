@@ -49,4 +49,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                      @Param("date") LocalDate date,
                                      @Param("slotStart") LocalTime slotStart,
                                      @Param("slotEnd") LocalTime slotEnd);
+
+    @Query("""
+            select case when count(b) > 0 then true else false end 
+            from Booking b 
+            where b.employee.empId = :employeeId 
+              and b.scheduleDate = :date 
+              and not (b.slotEnd <= :slotStart or b.slotStart >= :slotEnd)
+              and b.id != :excludeBookingId
+            """)
+    boolean existsOverlappingBookingExcludingId(@Param("employeeId") String employeeId,
+                                                @Param("date") LocalDate date,
+                                                @Param("slotStart") LocalTime slotStart,
+                                                @Param("slotEnd") LocalTime slotEnd,
+                                                @Param("excludeBookingId") Long excludeBookingId);
 }

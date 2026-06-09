@@ -4,6 +4,7 @@ import { formatTime, formatDate, parseNotes } from "../utils/helpers";
 import Toast from "../components/common/Toast";
 import BookingDetailDrawer from "../components/overlays/BookingDetailDrawer";
 import EmployeeProfileDrawer from "../components/overlays/EmployeeProfileDrawer";
+import EditBookingModal from "../components/overlays/EditBookingModal";
 
 export default function ViewBookingsPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -14,6 +15,11 @@ export default function ViewBookingsPage() {
   const [toast, setToast] = useState({ msg: "", type: "info" });
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [profileEmpId, setProfileEmpId] = useState(null);
+
+  // State for tracking the booking being edited
+  const [editingBooking, setEditingBooking] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const [search, setSearch] = useState("");
   const dateRef = useRef(null);
 
@@ -39,6 +45,61 @@ export default function ViewBookingsPage() {
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- HANDLERS ---
+  const handleEdit = (booking, e) => {
+    e.stopPropagation(); // Prevents the details drawer from opening
+    setEditingBooking(booking); // Opens the edit modal
+  };
+
+  const handleUpdateBooking = async (updatedData) => {
+    if (!updatedData.customer || !updatedData.phone || !updatedData.email) {
+      setToast({ msg: "Please fill all customer fields.", type: "error" });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      // Re-format the notes string based on the modal's input
+      const newNotes = `Customer: ${updatedData.customer}\nPhone: ${updatedData.phone}\nEmail: ${updatedData.email}`;
+
+      // Call backend to update
+      await api.put(`/api/bookings/${editingBooking.id}`, {
+        notes: newNotes
+      });
+
+      setToast({ msg: "Booking updated successfully.", type: "success" });
+      setEditingBooking(null);
+      load(); // Refresh the list to show new data
+    } catch (err) {
+      setToast({ msg: err?.response?.data || "Failed to update booking.", type: "error" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (bookingId, e) => {
+    e.stopPropagation();
+
+    if (!window.confirm("Are you sure you want to delete this booking? This cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/bookings/${bookingId}`);
+      setToast({ msg: "Booking deleted successfully.", type: "success" });
+
+      // Instantly remove from UI
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+
+      if (selectedBooking?.id === bookingId) {
+        setSelectedBooking(null);
+      }
+    } catch (err) {
+      setToast({ msg: err?.response?.data || "Failed to delete booking.", type: "error" });
+    }
+  };
+  // --------------------
 
   const filtered = bookings.filter((b) => {
     if (!search.trim()) return true;
@@ -110,6 +171,7 @@ export default function ViewBookingsPage() {
                   <th>Phone</th>
                   <th>Email</th>
                   <th className="th-r">Created</th>
+                  <th style={{ textAlign: "center" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -150,6 +212,44 @@ export default function ViewBookingsPage() {
                           ? new Date(b.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
                           : "—"}
                       </td>
+
+                     <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                       <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center" }}>
+                         {/* Edit Button */}
+                         <button
+                           onClick={(e) => handleEdit(b, e)}
+                           style={{
+                             background: "none", border: "none", cursor: "pointer",
+                             color: "#6366f1", display: "flex", alignItems: "center",
+                             justifyContent: "center", padding: "4px"
+                           }}
+                           title="Edit Booking"
+                         >
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                             <path d="M12 20h9"></path>
+                             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                           </svg>
+                         </button>
+
+                         {/* Delete Button */}
+                         <button
+                           onClick={(e) => handleDelete(b.id, e)}
+                           style={{
+                             background: "none", border: "none", cursor: "pointer",
+                             color: "#ef4444", display: "flex", alignItems: "center",
+                             justifyContent: "center", padding: "4px"
+                           }}
+                           title="Delete Booking"
+                         >
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                             <polyline points="3 6 5 6 21 6"></polyline>
+                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                             <line x1="10" y1="11" x2="10" y2="17"></line>
+                             <line x1="14" y1="11" x2="14" y2="17"></line>
+                           </svg>
+                         </button>
+                       </div>
+                     </td>
                     </tr>
                   );
                 })}
@@ -167,6 +267,16 @@ export default function ViewBookingsPage() {
           <p>{search ? "No bookings match your search." : "No bookings found for this date."}</p>
           <p className="empty-sub">Try a different date or search term.</p>
         </div>
+      )}
+
+      {/* FIXED: Modals and Drawers block */}
+      {editingBooking && (
+        <EditBookingModal
+          booking={editingBooking}
+          onClose={() => setEditingBooking(null)}
+          onSave={handleUpdateBooking}
+          inProgress={isUpdating}
+        />
       )}
 
       <BookingDetailDrawer

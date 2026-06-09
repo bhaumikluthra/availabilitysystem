@@ -2,19 +2,14 @@ package com.attendancecalculator.controller;
 
 import com.attendancecalculator.dto.BookingRequest;
 import com.attendancecalculator.dto.BookingResponse;
+import com.attendancecalculator.dto.UpdateBookingNotesRequest;
 import com.attendancecalculator.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -46,5 +41,21 @@ public class BookingController {
 
         List<BookingResponse> bookings = bookingService.getBookingsForDate(date);
         return ResponseEntity.ok(bookings);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BookingResponse> updateBookingNotes(
+            @PathVariable Long id,
+            @RequestBody UpdateBookingNotesRequest request) {
+
+        BookingResponse response = bookingService.updateBooking(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+
+        bookingService.deleteBooking(id);
+        return ResponseEntity.noContent().build();
     }
 }
