@@ -46,7 +46,6 @@ public class AvailabilityService {
                 request.getStatus(), request.getGender(), request.getShiftTime());
 
         List<LocalTime> slotBoundaries = buildSlotBoundaries(request.getFromTime(), request.getToTime());
-
         int slotCount = slotBoundaries.size() - 1;
         int[] availableCounts = new int[slotCount];
 
@@ -61,11 +60,29 @@ public class AvailabilityService {
             String employeeId = s.getEmployee().getEmpId();
             List<Booking> employeeBookings = bookingsByEmployee.getOrDefault(employeeId, List.of());
 
+            // OPTIMIZATION: Flatten bookings into a boolean array for O(1) lookups
+            boolean[] unavailableSlots = new boolean[slotCount];
+            for (Booking b : employeeBookings) {
+                int startIdx = getSlotIndex(request.getFromTime(), b.getSlotStart(), false);
+                int endIdx = getSlotIndex(request.getFromTime(), b.getSlotEnd(), true);
+
+                // Ensure indices stay within array bounds
+                startIdx = Math.max(0, startIdx);
+                endIdx = Math.min(slotCount - 1, endIdx);
+
+                // Mark the slots covered by this booking as unavailable
+                for (int i = startIdx; i <= endIdx; i++) {
+                    unavailableSlots[i] = true;
+                }
+            }
+
+            // Iterate slots. Skip the O(b) booking check entirely!
             for (int i = 0; i < slotCount; i++) {
-                LocalTime slotStart = slotBoundaries.get(i);
-                LocalTime slotEnd = slotBoundaries.get(i + 1);
-                if (isAvailableInSlot(s, slotStart, slotEnd)) {
-                    if (!hasOverlappingBooking(employeeBookings, slotStart, slotEnd)) {
+                if (!unavailableSlots[i]) {
+                    LocalTime slotStart = slotBoundaries.get(i);
+                    LocalTime slotEnd = slotBoundaries.get(i + 1);
+
+                    if (isAvailableInSlot(s, slotStart, slotEnd)) {
                         availableCounts[i]++;
                     }
                 }
@@ -73,6 +90,16 @@ public class AvailabilityService {
         }
 
         return buildAvailabilityResponse(slotBoundaries, availableCounts);
+    }
+
+    private int getSlotIndex(LocalTime baseTime, LocalTime targetTime, boolean isEnd) {
+        long minutes = java.time.temporal.ChronoUnit.MINUTES.between(baseTime, targetTime);
+
+        if (isEnd) {
+            minutes -= 1;
+        }
+
+        return (int) Math.floorDiv(minutes, SLOT_DURATION_MINUTES);
     }
 
     @Transactional(readOnly = true)

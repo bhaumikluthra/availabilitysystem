@@ -107,44 +107,31 @@ export default function AvailabilityPage({ refreshTrigger }) {
     setBookingModal({ empId: employeeId });
   };
 
-  const handleBook = async ({ phone, email, customer }) => {
-    const employeeId = bookingModal.empId;
-    if (!employeeId || !drawer.slot) return;
+ const handleBook = async ({ phone, email, customer, additionalNotes }) => {
+     const employeeId = bookingModal.empId;
+     if (!employeeId || !drawer.slot) return;
 
-    if (!customer || !phone || !email) {
-      setToast({ msg: "Please fill customer name, phone and email.", type: "error" });
-      return;
-    }
-    const emailOk = /^\S+@\S+\.\S+$/.test(email);
-    if (!emailOk) {
-      setToast({ msg: "Please enter a valid email address.", type: "error" });
-      return;
-    }
+     if (!customer || !phone || !email) {
+       setToast({ msg: "Please fill customer name, phone and email.", type: "error" });
+       return;
+     }
 
-    const [slotStart, slotEnd] = drawer.slot.split("-");
-    setBookingInProgress(employeeId);
-    try {
-      const notes = `Customer: ${customer}\nPhone: ${phone}\nEmail: ${email}`;
-      const payload = {
-        employeeId,
-        scheduleDate: filters.date,
-        slotStart,
-        slotEnd,
-        notes,
-      };
-      await bookingsClient.createBooking(payload);
-      setToast({ msg: "Booking created.", type: "success" });
-      setBookingModal({ empId: null });
-      await loadAvailability();
-      await handleSlotClick(drawer.slot);
-    } catch (err) {
-      const msg = err?.response?.data || err.message || "Booking failed.";
-      setToast({ msg, type: "error" });
-      if (drawer.slot) await handleSlotClick(drawer.slot);
-    } finally {
-      setBookingInProgress(null);
-    }
-  };
+     const [slotStart, slotEnd] = drawer.slot.split("-");
+     setBookingInProgress(employeeId);
+     try {
+       const payload = { employeeId, scheduleDate: filters.date, slotStart, slotEnd, customerName: customer, customerPhone: phone, customerEmail: email, additionalNotes: additionalNotes || "" };
+
+       await bookingsClient.createBooking(payload);
+       setToast({ msg: "Booking created.", type: "success" });
+       setBookingModal({ empId: null });
+       await loadAvailability();
+       await handleSlotClick(drawer.slot);
+     } catch (err) {
+       setToast({ msg: err?.response?.data || err.message || "Booking failed.", type: "error" });
+     } finally {
+       setBookingInProgress(null);
+     }
+   };
 
   const handleFilter = (e) => setFilters(p => ({ ...p, [e.target.name]: e.target.value }));
 

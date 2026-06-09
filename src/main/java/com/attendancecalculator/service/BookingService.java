@@ -2,7 +2,7 @@ package com.attendancecalculator.service;
 
 import com.attendancecalculator.dto.BookingRequest;
 import com.attendancecalculator.dto.BookingResponse;
-import com.attendancecalculator.dto.UpdateBookingNotesRequest;
+import com.attendancecalculator.dto.UpdateBookingRequest;
 import com.attendancecalculator.entity.Booking;
 import com.attendancecalculator.entity.Employee;
 import com.attendancecalculator.entity.EmployeeSchedule;
@@ -88,16 +88,15 @@ public class BookingService {
         booking.setScheduleDate(request.getScheduleDate());
         booking.setSlotStart(request.getSlotStart());
         booking.setSlotEnd(request.getSlotEnd());
-        booking.setNotes(request.getNotes());
+        booking.setCustomerName(request.getCustomerName());
+        booking.setCustomerPhone(request.getCustomerPhone());
+        booking.setCustomerEmail(request.getCustomerEmail());
+        booking.setAdditionalNotes(request.getAdditionalNotes());
 
         Booking saved = bookingRepository.save(booking);
         return toResponse(saved);
     }
 
-    /**
-     * Returns all bookings for the given date sorted by slot start time.
-     * Uses the existing FETCH JOIN query so employee data is loaded in one query.
-     */
     @Transactional(readOnly = true)
     public List<BookingResponse> getBookingsForDate(LocalDate date) {
 
@@ -113,7 +112,6 @@ public class BookingService {
                 .toList();
     }
 
-
     private BookingResponse toResponse(Booking b) {
         return BookingResponse.builder()
                 .id(b.getId())
@@ -123,9 +121,13 @@ public class BookingService {
                 .slotStart(b.getSlotStart())
                 .slotEnd(b.getSlotEnd())
                 .createdAt(b.getCreatedAt())
-                .notes(b.getNotes())
+                .customerName(b.getCustomerName())
+                .customerPhone(b.getCustomerPhone())
+                .customerEmail(b.getCustomerEmail())
+                .additionalNotes(b.getAdditionalNotes())
                 .build();
     }
+
     @Transactional
     public void deleteBooking(Long id) {
         if (!bookingRepository.existsById(id)) {
@@ -135,15 +137,16 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponse updateBooking(Long id, UpdateBookingNotesRequest request) {
-        // 1. Find the existing booking
+    public BookingResponse updateBooking(Long id, UpdateBookingRequest request) {
         Booking existingBooking = bookingRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found with ID: " + id));
 
-        // 2. Only update the notes
-        existingBooking.setNotes(request.getNotes());
+        existingBooking.setCustomerName(request.getCustomerName());
+        existingBooking.setCustomerPhone(request.getCustomerPhone());
+        existingBooking.setCustomerEmail(request.getCustomerEmail());
+        existingBooking.setAdditionalNotes(request.getAdditionalNotes());
 
-        // 3. Save and return
         Booking saved = bookingRepository.save(existingBooking);
         return toResponse(saved);
-    }}
+    }
+}

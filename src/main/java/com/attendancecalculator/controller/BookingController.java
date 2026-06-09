@@ -2,7 +2,7 @@ package com.attendancecalculator.controller;
 
 import com.attendancecalculator.dto.BookingRequest;
 import com.attendancecalculator.dto.BookingResponse;
-import com.attendancecalculator.dto.UpdateBookingNotesRequest;
+import com.attendancecalculator.dto.UpdateBookingRequest;
 import com.attendancecalculator.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +46,7 @@ public class BookingController {
     @PutMapping("/{id}")
     public ResponseEntity<BookingResponse> updateBookingNotes(
             @PathVariable Long id,
-            @RequestBody UpdateBookingNotesRequest request) {
+            @RequestBody UpdateBookingRequest request) {
 
         BookingResponse response = bookingService.updateBooking(id, request);
         return ResponseEntity.ok(response);

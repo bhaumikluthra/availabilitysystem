@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { formatTime, formatDate, parseNotes } from "../../utils/helpers";
+import { formatTime, formatDate } from "../../utils/helpers"; // Removed parseNotes
 
 export default function BookingDetailDrawer({ booking, onClose }) {
   useEffect(() => {
@@ -9,7 +9,8 @@ export default function BookingDetailDrawer({ booking, onClose }) {
   }, [onClose]);
 
   if (!booking) return null;
-  const notes = parseNotes(booking.notes);
+
+  const hasCustomerInfo = booking.customerName || booking.customerPhone || booking.customerEmail;
 
   return (
     <>
@@ -44,30 +45,27 @@ export default function BookingDetailDrawer({ booking, onClose }) {
             </div>
           </div>
 
-          {booking.notes && (
+          {hasCustomerInfo && (
             <div className="bdetail-section">
               <p className="bdetail-heading">Customer Info</p>
               <div className="bdetail-notes">
-                {notes["Customer"] && (
+                {booking.customerName && (
                   <div className="bdetail-row">
                     <span className="bdetail-key">Name</span>
-                    <span className="bdetail-val">{notes["Customer"]}</span>
+                    <span className="bdetail-val">{booking.customerName}</span>
                   </div>
                 )}
-                {notes["Phone"] && (
+                {booking.customerPhone && (
                   <div className="bdetail-row">
                     <span className="bdetail-key">Phone</span>
-                    <span className="bdetail-val">{notes["Phone"]}</span>
+                    <span className="bdetail-val">{booking.customerPhone}</span>
                   </div>
                 )}
-                {notes["Email"] && (
+                {booking.customerEmail && (
                   <div className="bdetail-row">
                     <span className="bdetail-key">Email</span>
-                    <span className="bdetail-val">{notes["Email"]}</span>
+                    <span className="bdetail-val">{booking.customerEmail}</span>
                   </div>
-                )}
-                {!notes["Customer"] && !notes["Phone"] && !notes["Email"] && (
-                  <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{booking.notes}</p>
                 )}
               </div>
             </div>

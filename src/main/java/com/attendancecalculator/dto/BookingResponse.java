@@ -18,5 +18,8 @@ public class BookingResponse {
     private final LocalTime  slotStart;
     private final LocalTime  slotEnd;
     private final Instant    createdAt;
-    private final String     notes;
+    private final String     customerName;
+    private final String     customerPhone;
+    private final String     customerEmail;
+    private final String     additionalNotes;
 }

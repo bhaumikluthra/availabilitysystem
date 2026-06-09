@@ -1,6 +1,5 @@
 package com.attendancecalculator.entity;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -41,13 +40,20 @@ public class Booking {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "notes")
-    private String notes;
+    @Column(name = "customer_name", length = 100)
+    private String customerName;
+
+    @Column(name = "customer_phone", length = 20)
+    private String customerPhone;
+
+    @Column(name = "customer_email", length = 100)
+    private String customerEmail;
+
+    @Column(name = "additional_notes", length = 500)
+    private String additionalNotes;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
     }
-
-
 }

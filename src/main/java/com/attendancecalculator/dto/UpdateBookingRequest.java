@@ -9,6 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateBookingNotesRequest {
-    private String notes;
+public class UpdateBookingRequest {
+    private String customerName;
+    private String customerPhone;
+    private String customerEmail;
+    private String additionalNotes;
 }

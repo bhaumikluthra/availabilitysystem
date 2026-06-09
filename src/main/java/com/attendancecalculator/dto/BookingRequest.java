@@ -30,5 +30,9 @@ public class BookingRequest {
     @NotNull
     private LocalTime slotEnd;
 
-    private String notes;
+    private String customerName;
+    private String customerPhone;
+    private String customerEmail;
+    private String additionalNotes;
+
 }
