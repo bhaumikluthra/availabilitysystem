@@ -218,17 +218,6 @@ public class AvailabilityService {
         return true;
     }
 
-    private boolean hasOverlappingBooking(List<Booking> bookings,
-                                          LocalTime slotStart, LocalTime slotEnd) {
-        for (Booking booking : bookings) {
-            if (booking.getSlotStart().isBefore(slotEnd)
-                    && booking.getSlotEnd().isAfter(slotStart)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void validateRequest(AvailabilityFilterRequest request) {
         if (request.getDate() == null) {
             throw new IllegalArgumentException("date is required");

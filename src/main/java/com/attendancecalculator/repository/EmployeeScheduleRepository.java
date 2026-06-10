@@ -52,19 +52,6 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
             @Param("shiftTime")   String shiftTime
     );
 
-    @Modifying
-    @Query("""
-            UPDATE EmployeeSchedule es
-            SET es.breakStart = :breakStart,
-                es.breakEnd   = :breakEnd
-            WHERE es.scheduleDate IN :dates
-              AND es.shiftStart IS NOT NULL
-            """)
-    int updateBreakTimeForDates(
-            @Param("breakStart") LocalTime breakStart,
-            @Param("breakEnd")   LocalTime breakEnd,
-            @Param("dates")      List<LocalDate> dates
-    );
 
     @Modifying
     @Query("""
@@ -78,17 +65,6 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
             @Param("breakEnd")   LocalTime breakEnd
     );
 
-    @Query("SELECT DISTINCT es.scheduleDate FROM EmployeeSchedule es ORDER BY es.scheduleDate")
-    List<LocalDate> findDistinctScheduleDates();
-
-    /**
-     * Fetches every schedule row in [fromDate, toDate] (inclusive) for all employees,
-     * with their employee data loaded in the same query (FETCH JOIN avoids N+1).
-     *
-     * Used by AttendanceSummaryService to build monthly summaries.
-     * Optional empId filter: pass null to get all employees.
-
-     */
     @Query("""
             SELECT es
             FROM EmployeeSchedule es

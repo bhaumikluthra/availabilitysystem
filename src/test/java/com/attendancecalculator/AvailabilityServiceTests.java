@@ -41,8 +41,21 @@ class AvailabilityServiceTests {
         when(scheduleRepository.findSchedulesByFilters(date, null, null, null, null, null, null))
                 .thenReturn(List.of(scheduleOne, scheduleTwo));
 
-        Booking booking = new Booking(null, employeeOne, date, LocalTime.of(10, 0), LocalTime.of(10, 15), Instant.now(), "note");
-        when(bookingRepository.findBookingsOverlappingSlotForEmployees(
+        Booking booking = new Booking(
+                null,
+                employeeOne,
+                date,
+                LocalTime.of(10, 0),
+                LocalTime.of(10, 15),
+                Instant.now(),
+                null,
+                null,
+                null,
+                "note"
+        );
+
+        // FIX: Changed to the correct new method name that returns List<Booking> for a list of employees
+        when(bookingRepository.findOverlapsByEmployeeList(
                 date, LocalTime.of(10, 0), LocalTime.of(10, 30), List.of("E1", "E2")))
                 .thenReturn(List.of(booking));
 
@@ -58,10 +71,10 @@ class AvailabilityServiceTests {
         assertThat(availability).extracting(AvailabilitySlotResponse::getAvailableAgents)
                 .containsExactly(1, 2);
 
-        verify(bookingRepository).findBookingsOverlappingSlotForEmployees(
+        verify(bookingRepository).findOverlapsByEmployeeList(
                 date, LocalTime.of(10, 0), LocalTime.of(10, 30), List.of("E1", "E2"));
-        verify(bookingRepository, never()).findBookedEmployeeIdsOverlappingSlot(any(), any(), any());
-        verify(bookingRepository, never()).findBookingsOverlappingSlot(any(), any(), any());
+        verify(bookingRepository, never()).findEmployeeIdsWithOverlaps(any(), any(), any());
+        verify(bookingRepository, never()).findAllOverlaps(any(), any(), any());
     }
 
     @Test
@@ -83,6 +96,7 @@ class AvailabilityServiceTests {
 
         assertThat(availability).extracting(AvailabilitySlotResponse::getAvailableAgents)
                 .containsExactly(0, 0);
-        verify(bookingRepository, never()).findBookingsOverlappingSlotForEmployees(any(), any(), any(), anyList());
+
+        verify(bookingRepository, never()).findOverlapsByEmployeeList(any(), any(), any(), anyList());
     }
 }
