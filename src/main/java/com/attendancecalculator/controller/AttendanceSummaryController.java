@@ -25,13 +25,6 @@ public class AttendanceSummaryController {
         this.summaryService = summaryService;
     }
 
-    /**
-     * GET /api/attendance/summary?month=2025-06
-     * GET /api/attendance/summary?month=2025-06&empId=E001
-     *
-     * month  — required, format yyyy-MM
-     * empId  — optional, filters to a single employee
-     */
     @GetMapping("/summary")
     public ResponseEntity<List<AttendanceSummaryResponse>> getSummary(
             @RequestParam String month,
@@ -41,16 +34,6 @@ public class AttendanceSummaryController {
         return ResponseEntity.ok(summaryService.getSummary(yearMonth, empId));
     }
 
-    /**
-     * GET /api/attendance/daily?month=2025-06&empId=E001
-     *
-     * Returns one entry per scheduled day: [{ "day": 1, "value": "10:00-19:00" }, ...]
-     * "value" is "WO", "PL", "LOP", or a shift range string like "10:00-19:00".
-     * Days with no schedule row are absent — the frontend renders them grey.
-     *
-     * month  — required, format yyyy-MM
-     * empId  — required
-     */
     @GetMapping("/daily")
     public ResponseEntity<List<DailyAttendanceEntry>> getDailyBreakdown(
             @RequestParam String month,
@@ -59,8 +42,6 @@ public class AttendanceSummaryController {
         YearMonth yearMonth = parseMonth(month);
         return ResponseEntity.ok(summaryService.getDailyBreakdown(yearMonth, empId));
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────────
 
     private YearMonth parseMonth(String month) {
         try {

@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AttendanceSummaryService {
@@ -28,88 +29,53 @@ public class AttendanceSummaryService {
         this.scheduleRepository = scheduleRepository;
     }
 
-    /**
-     * Returns one summary row per employee for the given year-month.
-     *
-     * @param yearMonth  e.g. YearMonth.of(2025, 6)
-     * @param empId      optional — pass null to get all employees
-     */
     @Transactional(readOnly = true)
     public List<AttendanceSummaryResponse> getSummary(YearMonth yearMonth, String empId) {
+        String filterEmpId = (empId == null || empId.isBlank()) ? null : empId;
 
-        LocalDate fromDate = yearMonth.atDay(1);
-        LocalDate toDate   = yearMonth.atEndOfMonth();
+        List<EmployeeSchedule> schedules = scheduleRepository.findAllByDateRangeAndEmployee(
+                yearMonth.atDay(1), yearMonth.atEndOfMonth(), filterEmpId);
 
-        List<EmployeeSchedule> schedules =
-                scheduleRepository.findAllByDateRangeAndEmployee(
-                        fromDate, toDate,
-                        empId == null || empId.isBlank() ? null : empId
-                );
-
-        // Group by employee — LinkedHashMap preserves insertion (empId) order
-        Map<String, List<EmployeeSchedule>> byEmployee = new LinkedHashMap<>();
-        for (EmployeeSchedule s : schedules) {
-            byEmployee
-                    .computeIfAbsent(s.getEmployee().getEmpId(), k -> new ArrayList<>())
-                    .add(s);
-        }
-
-        List<AttendanceSummaryResponse> result = new ArrayList<>();
-
-        for (Map.Entry<String, List<EmployeeSchedule>> entry : byEmployee.entrySet()) {
-            List<EmployeeSchedule> empSchedules = entry.getValue();
-            Employee emp = empSchedules.get(0).getEmployee();
-
-            int shiftDays = 0, woDays = 0, plDays = 0, lopDays = 0, otherDays = 0;
-
-            for (EmployeeSchedule s : empSchedules) {
-                String code = s.getShiftCode() == null ? "" : s.getShiftCode().toUpperCase();
-                switch (code) {
-                    case "SHIFT" -> shiftDays++;
-                    case "WO"    -> woDays++;
-                    case "PL"    -> plDays++;
-                    case "LOP"   -> lopDays++;
-                    default      -> otherDays++;
-                }
-            }
-
-            result.add(AttendanceSummaryResponse.builder()
-                    .empId(emp.getEmpId())
-                    .employeeName(emp.getEmployeeName())
-                    .email(emp.getEmail())
-                    .manager(emp.getManager())
-                    .groupName(emp.getGroupName())
-                    .coachName(emp.getCoachName())
-                    .shiftTime(emp.getShiftTime())
-                    .shiftDays(shiftDays)
-                    .woDays(woDays)
-                    .plDays(plDays)
-                    .lopDays(lopDays)
-                    .otherDays(otherDays)
-                    .totalDays(empSchedules.size())
-                    .build());
-        }
-
-        // Sort by empId alphabetically for a stable table order
-        result.sort(Comparator.comparing(AttendanceSummaryResponse::getEmpId));
-        return result;
+        return schedules.stream()
+                .collect(Collectors.groupingBy(s -> s.getEmployee().getEmpId()))
+                .values().stream()
+                .map(this::buildSummaryForEmployee)
+                .sorted(Comparator.comparing(AttendanceSummaryResponse::getEmpId))
+                .toList();
     }
 
-    /**
-     * Returns one entry per scheduled day in the month for a single employee,
-     * each carrying the day-of-month and the human-readable cell value:
-     * <ul>
-     *   <li>"WO" / "PL" / "LOP"  — leave codes</li>
-     *   <li>"HH:mm-HH:mm"        — shift range, e.g. "10:00-19:00"</li>
-     * </ul>
-     *
-     * Days with no schedule row are simply absent from the list (the calendar
-     * treats missing days as "no data" and renders them grey).
-     *
-     * @param yearMonth  the month to query
-     * @param empId      required — must not be blank
-     * @throws IllegalArgumentException if empId is blank
-     */
+    private AttendanceSummaryResponse buildSummaryForEmployee(List<EmployeeSchedule> schedules) {
+        Employee emp = schedules.get(0).getEmployee();
+        int shiftDays = 0, woDays = 0, plDays = 0, lopDays = 0, otherDays = 0;
+
+        for (EmployeeSchedule s : schedules) {
+            String code = s.getShiftCode() == null ? "" : s.getShiftCode().toUpperCase();
+            switch (code) {
+                case "SHIFT" -> shiftDays++;
+                case "WO"    -> woDays++;
+                case "PL"    -> plDays++;
+                case "LOP"   -> lopDays++;
+                default      -> otherDays++;
+            }
+        }
+
+        return AttendanceSummaryResponse.builder()
+                .empId(emp.getEmpId())
+                .employeeName(emp.getEmployeeName())
+                .email(emp.getEmail())
+                .manager(emp.getManager())
+                .groupName(emp.getGroupName())
+                .coachName(emp.getCoachName())
+                .shiftTime(emp.getShiftTime())
+                .shiftDays(shiftDays)
+                .woDays(woDays)
+                .plDays(plDays)
+                .lopDays(lopDays)
+                .otherDays(otherDays)
+                .totalDays(schedules.size())
+                .build();
+    }
+
     @Transactional(readOnly = true)
     public List<DailyAttendanceEntry> getDailyBreakdown(YearMonth yearMonth, String empId) {
 
@@ -133,16 +99,10 @@ public class AttendanceSummaryService {
             }
         }
 
-        // Return in day order for predictable JSON
         entries.sort(Comparator.comparingInt(DailyAttendanceEntry::getDay));
         return entries;
     }
 
-    /**
-     * Converts a schedule row into the string the calendar cell should display.
-     * Returns null for rows that carry no meaningful data (shouldn't happen in
-     * practice, but defensive).
-     */
     private String resolveCellValue(EmployeeSchedule s) {
         String code = s.getShiftCode() == null ? "" : s.getShiftCode().toUpperCase();
         return switch (code) {

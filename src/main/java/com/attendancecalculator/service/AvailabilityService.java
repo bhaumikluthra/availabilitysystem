@@ -60,23 +60,19 @@ public class AvailabilityService {
             String employeeId = s.getEmployee().getEmpId();
             List<Booking> employeeBookings = bookingsByEmployee.getOrDefault(employeeId, List.of());
 
-            // OPTIMIZATION: Flatten bookings into a boolean array for O(1) lookups
             boolean[] unavailableSlots = new boolean[slotCount];
             for (Booking b : employeeBookings) {
                 int startIdx = getSlotIndex(request.getFromTime(), b.getSlotStart(), false);
                 int endIdx = getSlotIndex(request.getFromTime(), b.getSlotEnd(), true);
 
-                // Ensure indices stay within array bounds
                 startIdx = Math.max(0, startIdx);
                 endIdx = Math.min(slotCount - 1, endIdx);
 
-                // Mark the slots covered by this booking as unavailable
                 for (int i = startIdx; i <= endIdx; i++) {
                     unavailableSlots[i] = true;
                 }
             }
 
-            // Iterate slots. Skip the O(b) booking check entirely!
             for (int i = 0; i < slotCount; i++) {
                 if (!unavailableSlots[i]) {
                     LocalTime slotStart = slotBoundaries.get(i);
@@ -158,7 +154,7 @@ public class AvailabilityService {
                 .map(s -> s.getEmployee().getEmpId())
                 .toList();
 
-        List<Booking> bookings = bookingRepository.findBookingsOverlappingSlotForEmployees(
+        List<Booking> bookings = bookingRepository.findOverlapsByEmployeeList(
                 date, from, to, employeeIds);
 
         Map<String, List<Booking>> bookingsByEmployee = new HashMap<>();

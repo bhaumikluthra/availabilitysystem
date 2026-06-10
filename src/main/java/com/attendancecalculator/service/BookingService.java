@@ -72,7 +72,7 @@ public class BookingService {
             }
         }
 
-        boolean hasConflict = bookingRepository.existsOverlappingBooking(
+        boolean hasConflict = bookingRepository.existsOverlapForEmployee(
                 request.getEmployeeId(),
                 request.getScheduleDate(),
                 request.getSlotStart(),
@@ -105,7 +105,7 @@ public class BookingService {
         }
 
         return bookingRepository
-                .findAllBookingsForDateWithEmployee(date)
+                .findAllWithEmployeeByDate(date)
                 .stream()
                 .sorted(Comparator.comparing(Booking::getSlotStart))
                 .map(this::toResponse)
