@@ -9,8 +9,6 @@ export default function AddDataModal({ onClose, onDone }) {
   const [breakTime, setBreakTime] = useState({ breakStart: "12:00", breakEnd: "13:00" });
 
   const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
   const [toast, setToast] = useState({ msg: "", type: "info" });
 
   const fileRef = useRef(null);
@@ -19,42 +17,45 @@ export default function AddDataModal({ onClose, onDone }) {
   const closeToast = useCallback(() => setToast({ msg: "", type: "info" }), []);
 
   const handleFileSelect = (f) => {
-    if (f) { setFile(f); setFileName(f.name); setUploaded(false); }
+    if (f) { setFile(f); setFileName(f.name); }
   };
 
   const doUpload = async () => {
     if (!file) { notify("Please select a CSV file first.", "error"); return; }
+
+    // Validate break time before even sending
+    if (!breakTime.breakStart || !breakTime.breakEnd) {
+      notify("Please set both break start and end times.", "error");
+      return;
+    }
+    if (breakTime.breakStart >= breakTime.breakEnd) {
+      notify("Break start must be before break end time.", "error");
+      return;
+    }
+
     setUploading(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await api.post("/api/files/upload", fd, {
+
+      // Pass break times as query params — scoped to this upload's employees
+      const params = new URLSearchParams({
+        breakStart: breakTime.breakStart + ":00", // "HH:mm" → "HH:mm:ss" for LocalTime
+        breakEnd:   breakTime.breakEnd   + ":00",
+      });
+
+      const res = await api.post(`/api/files/upload?${params}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
       if (res.status === 201 || res.status === 200) {
         notify(res.data?.message || res.data || "File uploaded successfully.", "success");
-        setUploaded(true);
+        setTimeout(() => { onDone(); onClose(); }, 800);
       }
     } catch (err) {
       notify(err?.response?.data || "Upload failed. Please check the CSV format.", "error");
     } finally {
       setUploading(false);
-    }
-  };
-
-  const doSaveBreak = async () => {
-    setSaving(true);
-    try {
-      const res = await api.put("/api/break-times", {
-        breakStart: breakTime.breakStart,
-        breakEnd: breakTime.breakEnd,
-      });
-      notify(res.data?.message || res.data || "Break time saved.", "success");
-      setTimeout(() => { onDone(); onClose(); }, 800);
-    } catch (err) {
-      notify(err?.response?.data || "Failed to set break time.", "error");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -68,6 +69,7 @@ export default function AddDataModal({ onClose, onDone }) {
 
         <Toast msg={toast.msg} type={toast.type} onClose={closeToast} />
 
+        {/* Step 1: File */}
         <div className="modal-section">
           <p className="section-label">1. Upload Roster CSV</p>
           <div className="upload-row">
@@ -85,33 +87,41 @@ export default function AddDataModal({ onClose, onDone }) {
               <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
                 onChange={(e) => handleFileSelect(e.target.files[0])} />
             </div>
-            <button className="btn btn-primary" onClick={doUpload} disabled={uploading || uploaded || !file}>
-              {uploading ? <span className="spin" /> : uploaded ? "✓ Upload Complete" : "Upload File"}
-            </button>
           </div>
         </div>
 
-        <div className={`modal-section ${!uploaded ? "section-dim" : ""}`}>
-          <p className="section-label">2. Global Break Time Settings</p>
+        {/* Step 2: Break time — always visible, always required */}
+        <div className="modal-section">
+          <p className="section-label">2. Break Time for This Roster</p>
           <div className="break-row">
             <div className="field">
               <label className="flabel">Start Time</label>
               <input className="ctrl" type="time" name="breakStart"
-                value={breakTime.breakStart} disabled={!uploaded}
+                value={breakTime.breakStart}
                 onChange={(e) => setBreakTime(p => ({ ...p, breakStart: e.target.value }))} />
             </div>
             <span className="arrow">→</span>
             <div className="field">
               <label className="flabel">End Time</label>
               <input className="ctrl" type="time" name="breakEnd"
-                value={breakTime.breakEnd} disabled={!uploaded}
+                value={breakTime.breakEnd}
                 onChange={(e) => setBreakTime(p => ({ ...p, breakEnd: e.target.value }))} />
             </div>
-            <button className="btn btn-primary" onClick={doSaveBreak} disabled={!uploaded || saving}>
-              {saving ? <span className="spin" /> : "Save & Close"}
-            </button>
           </div>
         </div>
+
+        {/* Single unified action button */}
+        <div className="modal-section" style={{ paddingTop: 0 }}>
+          <button
+            className="btn btn-primary"
+            style={{ width: "100%" }}
+            onClick={doUpload}
+            disabled={uploading || !file}
+          >
+            {uploading ? <><span className="spin" /> Uploading…</> : "Upload & Save Break Time"}
+          </button>
+        </div>
+
       </div>
     </div>
   );

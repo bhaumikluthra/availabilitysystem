@@ -35,15 +35,20 @@ public class EmployeeCsvService {
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeScheduleRepository employeeScheduleRepository;
+    private final BreakTimeService breakTimeService;
 
     public EmployeeCsvService(EmployeeRepository employeeRepository,
-                              EmployeeScheduleRepository employeeScheduleRepository) {
+                              EmployeeScheduleRepository employeeScheduleRepository,
+                              BreakTimeService breakTimeService) {
         this.employeeRepository = employeeRepository;
         this.employeeScheduleRepository = employeeScheduleRepository;
+        this.breakTimeService = breakTimeService;
     }
 
     @Transactional
-    public int saveEmployeesFromCsv(MultipartFile file) {
+    public int saveEmployeesFromCsv(MultipartFile file,
+                                    LocalTime breakStart,
+                                    LocalTime breakEnd) {
 
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("CSV file is empty");
@@ -121,6 +126,9 @@ public class EmployeeCsvService {
             employeeRepository.saveAll(employeesToSave);
             employeeScheduleRepository.saveAll(schedulesToSave);
 
+            if (breakStart != null && breakEnd != null) {
+                breakTimeService.setBreakTimeForEmployees(breakStart, breakEnd, empIds);
+            }
             return employeesToSave.size();
 
         } catch (IllegalArgumentException ex) {
@@ -212,4 +220,6 @@ public class EmployeeCsvService {
             }
         }
     }
+
+
 }

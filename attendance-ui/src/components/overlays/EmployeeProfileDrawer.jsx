@@ -104,10 +104,10 @@ function StatPill({ value, color, label }) {
   );
 }
 
-export default function EmployeeProfileDrawer({ empId, onClose }) {
+export default function EmployeeProfileDrawer({ empId, onClose, initialYear, initialMonth }) {
   const thisMonth = String(new Date().getMonth() + 1).padStart(2, "0");
-  const [year,  setYear]  = useState(String(currentYear));
-  const [month, setMonth] = useState(thisMonth);
+  const [year,  setYear]  = useState(initialYear  || String(currentYear));
+  const [month, setMonth] = useState(initialMonth || thisMonth);
   const [summary, setSummary] = useState(null);   // { empId, employeeName, manager, groupName, coachName, shiftDays, woDays, plDays, lopDays, otherDays, totalDays }
   const [dailyMap, setDailyMap] = useState(null); // { "1": "10:00-19:00", "3": "WO", ... }
   const [loading, setLoading] = useState(false);

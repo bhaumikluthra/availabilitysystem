@@ -79,4 +79,18 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
             @Param("toDate")   LocalDate toDate,
             @Param("empId")    String empId
     );
+
+    @Modifying
+    @Query("""
+        UPDATE EmployeeSchedule es
+        SET es.breakStart = :breakStart,
+            es.breakEnd   = :breakEnd
+        WHERE es.shiftStart IS NOT NULL
+          AND es.employee.empId IN :empIds
+        """)
+    int updateBreakTimeForEmployees(
+            @Param("breakStart") LocalTime breakStart,
+            @Param("breakEnd")   LocalTime breakEnd,
+            @Param("empIds")     Collection<String> empIds
+    );
 }

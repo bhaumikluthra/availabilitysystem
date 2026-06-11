@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.util.Collection;
 
 @Service
 public class BreakTimeService {
@@ -28,6 +29,18 @@ public class BreakTimeService {
         }
 
         return employeeScheduleRepository.updateBreakTimeForAll(breakStart, breakEnd);
+    }
+
+    @Transactional
+    public int setBreakTimeForEmployees(LocalTime breakStart, LocalTime breakEnd,
+                                        Collection<String> empIds) {
+        if (breakStart == null || breakEnd == null)
+            throw new IllegalArgumentException("breakStart and breakEnd must not be null");
+        if (breakStart.isAfter(breakEnd))
+            throw new IllegalArgumentException("Break start must not be after break end");
+        if (empIds == null || empIds.isEmpty()) return 0;
+
+        return employeeScheduleRepository.updateBreakTimeForEmployees(breakStart, breakEnd, empIds);
     }
 
 }

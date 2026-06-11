@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import api from "../services/api";
 import Toast from "../components/common/Toast";
+import EmployeeProfileDrawer from "../components/overlays/EmployeeProfileDrawer";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
   const d = new Date(2000, i, 1);
@@ -36,6 +37,9 @@ export default function AttendancePage() {
   const [search,  setSearch]  = useState("");
   const [sort,    setSort]    = useState({ col: "empId", dir: "asc" });
   const [toast,   setToast]   = useState({ msg: "", type: "info" });
+
+  // ✅ New: track which emp's profile drawer is open
+  const [profileEmpId, setProfileEmpId] = useState(null);
 
   const closeToast = useCallback(() => setToast({ msg: "", type: "info" }), []);
 
@@ -156,7 +160,8 @@ export default function AttendancePage() {
               Attendance Summary — {monthLabel} {year}
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="hint-text" style={{ fontSize: "12px", color: "gray" }}>Click column headers to sort</span>
+              {/* ✅ Updated hint text */}
+              <span className="hint-text" style={{ fontSize: "12px", color: "gray" }}>Click an Emp ID to view profile · Click headers to sort</span>
               <span className="badge" style={{ background: "#e5e7eb", padding: "2px 8px", borderRadius: "12px", fontSize: "12px" }}>
                 {visible.length} employee{visible.length !== 1 ? "s" : ""}
               </span>
@@ -185,7 +190,22 @@ export default function AttendancePage() {
                 {visible.map((r, i) => (
                   <tr key={r.empId} style={{ borderBottom: "1px solid #e5e7eb" }}>
                     <td style={{ padding: "12px" }}>{i + 1}</td>
-                    <td>{r.empId}</td>
+
+                    {/* ✅ Clickable Emp ID — same pattern as ViewBookingsPage */}
+                    <td>
+                      <span
+                        style={{
+                          fontWeight: 600, fontSize: 13,
+                          color: "#6366f1", cursor: "pointer",
+                          textDecoration: "underline", textUnderlineOffset: 2,
+                        }}
+                        onClick={() => setProfileEmpId(r.empId)}
+                        title="View employee profile"
+                      >
+                        {r.empId}
+                      </span>
+                    </td>
+
                     <td style={{ fontWeight: 500 }}>{r.employeeName || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
                     <td style={{ color: "gray", fontSize: 13 }}>{r.manager   || "—"}</td>
                     <td style={{ color: "gray", fontSize: 13 }}>{r.groupName || "—"}</td>
@@ -221,6 +241,15 @@ export default function AttendancePage() {
           <p style={{ fontSize: "14px" }}>Upload a roster that covers this month first.</p>
         </div>
       )}
+
+      {/* ✅ Profile drawer — same as ViewBookingsPage */}
+
+<EmployeeProfileDrawer
+  empId={profileEmpId}
+  onClose={() => setProfileEmpId(null)}
+  initialYear={year}
+  initialMonth={month}
+/>
     </div>
   );
 }
